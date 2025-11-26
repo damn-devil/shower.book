@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🚿Бронирование душа</title>
     <style>
-        /* Стили остаются такими же как в предыдущей версии */
+        /* Все стили остаются такими же */
         * {
             margin: 0;
             padding: 0;
@@ -652,7 +652,7 @@
             color: var(--primary);
         }
 
-        .gist-help {
+        .gist-info {
             background: rgba(255, 215, 0, 0.1);
             border-radius: 12px;
             padding: 15px;
@@ -660,22 +660,9 @@
             font-size: 0.9rem;
         }
 
-        .gist-help h4 {
+        .gist-info h4 {
             color: var(--primary);
             margin-bottom: 10px;
-        }
-
-        .gist-help ol {
-            padding-left: 20px;
-            margin-bottom: 10px;
-        }
-
-        .gist-help li {
-            margin-bottom: 8px;
-        }
-
-        .test-connection {
-            margin-top: 15px;
         }
     </style>
 </head>
@@ -781,37 +768,19 @@
             </div>
             
             <div class="config-panel">
-                <h3>⚙️ Настройки синхронизации</h3>
-                <div class="form-group">
-                    <label for="gistId">ID Gist (для синхронизации):</label>
-                    <input type="text" id="gistId" class="input-field" placeholder="Введите ID Gist">
-                    <small style="color: var(--text-light); font-size: 0.8rem;">
-                        Оставьте пустым для работы в оффлайн режиме
-                    </small>
+                <h3>⚙️ Информация о синхронизации</h3>
+                <div class="gist-info">
+                    <h4>📊 Статус синхронизации</h4>
+                    <p><strong>Gist ID:</strong> <span id="currentGistId">загрузка...</span></p>
+                    <p><strong>Статус:</strong> <span id="syncStatusText">проверка...</span></p>
+                    <p><strong>Последнее обновление:</strong> <span id="lastSyncTime">—</span></p>
+                    <p><strong>Всего броней:</strong> <span id="totalBookingsCount">0</span></p>
                 </div>
                 
-                <div class="test-connection">
-                    <button class="btn btn-secondary" onclick="testGistConnection()">
-                        🔍 Проверить подключение
+                <div style="margin-top: 15px;">
+                    <button class="btn btn-primary" onclick="forceSync()">
+                        🔄 Принудительная синхронизация
                     </button>
-                    <button class="btn btn-primary" onclick="saveGistConfig()" style="margin-top: 10px;">
-                        💾 Сохранить настройки
-                    </button>
-                </div>
-
-                <div class="gist-help">
-                    <h4>📖 Как создать Gist:</h4>
-                    <ol>
-                        <li>Перейдите на <a href="https://gist.github.com" target="_blank" style="color: var(--primary);">gist.github.com</a></li>
-                        <li>Создайте новый Gist с названием файла: <code>shower-bookings.json</code></li>
-                        <li>Вставьте начальное содержимое: <code>{"bookings":[]}</code></li>
-                        <li>Нажмите "Create public gist"</li>
-                        <li>Скопируйте ID из URL (например: <code>a1b2c3d4e5f6...</code>)</li>
-                        <li>Вставьте ID выше и сохраните</li>
-                    </ol>
-                    <p><strong>Пример URL Gist:</strong><br>
-                    <code>https://gist.github.com/username/<mark>a1b2c3d4e5f6...</mark></code><br>
-                    Копируйте только выделенную часть!</p>
                 </div>
             </div>
         </div>
@@ -838,9 +807,11 @@
     </div>
 
     <script>
+        // ФИКСИРОВАННЫЙ GIST ID - замените на ваш реальный ID Gist
+        const FIXED_GIST_ID = 'a1b2c3d4e5f6'; // ЗАМЕНИТЕ НА ВАШ РЕАЛЬНЫЙ GIST ID
+        
         // Конфигурация
         const STORAGE_KEY = 'showerBookings';
-        const GIST_CONFIG_KEY = 'gistConfig';
         const ADMIN_PASSWORD = 'admin123';
         
         let currentUser = '';
@@ -851,17 +822,23 @@
         let selectedMinutes = '00';
         let isAdmin = false;
         let currentDropdown = null;
-        let gistId = '';
 
         // Инициализация
         function initializeApp() {
-            loadGistConfig();
+            console.log('Инициализация приложения...');
+            console.log('Gist ID:', FIXED_GIST_ID);
+            
             currentUser = getCurrentUser();
             if (currentUser) {
                 document.getElementById('userName').value = currentUser;
             }
             
             initializeCustomSelects();
+            
+            // Показываем информацию о Gist
+            document.getElementById('currentGistId').textContent = FIXED_GIST_ID;
+            
+            // Загружаем данные сразу при запуске
             loadBookingsFromCloud();
             
             // Устанавливаем начальные значения
@@ -873,121 +850,114 @@
                 document.querySelector('#durationSelect').textContent = '30 минут';
             }, 100);
 
-            // Запускаем синхронизацию каждые 10 секунд
+            // Запускаем синхронизацию каждые 5 секунд
             setInterval(() => {
                 loadBookingsFromCloud();
-            }, 10000);
+            }, 5000);
         }
 
-        // Работа с GitHub Gist - ТОЛЬКО ДЛЯ ЧТЕНИЯ
+        // Работа с GitHub Gist
         async function loadBookingsFromCloud() {
-            if (!gistId) {
-                // Если Gist не настроен, работаем только с локальными данными
-                displayBookings();
+            if (!FIXED_GIST_ID || FIXED_GIST_ID === 'a1b2c3d4e5f6') {
+                showSyncStatus('❌ Укажите реальный Gist ID', 'error');
+                document.getElementById('syncStatusText').textContent = 'Ошибка: укажите Gist ID';
                 return;
             }
             
             try {
                 showSyncStatus('🔄 Синхронизация...', 'syncing');
+                document.getElementById('syncStatusText').textContent = 'Синхронизация...';
                 
-                // Используем raw URL для доступа к содержимому Gist
-                const rawUrl = `https://gist.githubusercontent.com/raw/${gistId}`;
-                const response = await fetch(rawUrl);
+                // Пробуем разные варианты URL для доступа к Gist
+                const urls = [
+                    `https://gist.githubusercontent.com/raw/${FIXED_GIST_ID}`,
+                    `https://gist.github.com/raw/${FIXED_GIST_ID}`,
+                    `https://api.github.com/gists/${FIXED_GIST_ID}`
+                ];
                 
-                if (!response.ok) {
-                    throw new Error(`Ошибка HTTP: ${response.status}`);
+                let response = null;
+                let content = null;
+                
+                for (const url of urls) {
+                    try {
+                        console.log('Пробуем URL:', url);
+                        response = await fetch(url);
+                        if (response.ok) {
+                            content = await response.json();
+                            break;
+                        }
+                    } catch (e) {
+                        console.log('Ошибка для URL', url, e);
+                        continue;
+                    }
                 }
                 
-                const content = await response.json();
-                
-                if (content && Array.isArray(content.bookings)) {
-                    // Сохраняем локально и обновляем интерфейс
-                    localStorage.setItem(STORAGE_KEY, JSON.stringify(content.bookings));
-                    displayBookings();
-                    showSyncStatus('✅ Синхронизировано', 'success');
-                } else {
-                    throw new Error('Неверный формат данных');
+                if (!response || !response.ok) {
+                    throw new Error('Не удалось подключиться к Gist');
                 }
+                
+                // Обрабатываем разные форматы ответа
+                let bookings = [];
+                if (Array.isArray(content)) {
+                    // Прямой массив броней
+                    bookings = content;
+                } else if (content && content.bookings && Array.isArray(content.bookings)) {
+                    // Объект с полем bookings
+                    bookings = content.bookings;
+                } else if (content && content.files) {
+                    // Gist API response
+                    const files = content.files;
+                    const fileKey = Object.keys(files).find(key => key.includes('json'));
+                    if (fileKey && files[fileKey].content) {
+                        const fileContent = JSON.parse(files[fileKey].content);
+                        bookings = fileContent.bookings || fileContent;
+                    }
+                }
+                
+                if (!Array.isArray(bookings)) {
+                    throw new Error('Неверный формат данных в Gist');
+                }
+                
+                console.log('Загружено броней:', bookings.length);
+                
+                // Сохраняем локально и обновляем интерфейс
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(bookings));
+                displayBookings();
+                
+                // Обновляем информацию в админке
+                document.getElementById('syncStatusText').textContent = 'Синхронизировано';
+                document.getElementById('lastSyncTime').textContent = new Date().toLocaleTimeString();
+                document.getElementById('totalBookingsCount').textContent = bookings.length;
+                
+                showSyncStatus('✅ Синхронизировано', 'success');
                 
             } catch (error) {
                 console.log('Ошибка синхронизации:', error);
-                showSyncStatus('❌ Оффлайн режим', 'error');
+                showSyncStatus('❌ Ошибка синхронизации', 'error');
+                document.getElementById('syncStatusText').textContent = 'Ошибка: ' + error.message;
+                
                 // Продолжаем работать с локальными данными
                 displayBookings();
             }
         }
 
-        // Для записи в Gist нужен GitHub Token, поэтому сохраняем только локально
+        // Сохранение данных (только локально, так как запись в Gist требует аутентификации)
         async function saveBookings(bookings) {
             // Сохраняем локально
             localStorage.setItem(STORAGE_KEY, JSON.stringify(bookings));
-            
-            // Показываем сообщение, что запись только локальная
-            if (gistId) {
-                showSyncStatus('💾 Локально сохранено', 'success');
-            } else {
-                showSyncStatus('💾 Сохранено (оффлайн)', 'success');
-            }
-            
             displayBookings();
-        }
-
-        // Тестирование подключения к Gist
-        async function testGistConnection() {
-            const testGistId = document.getElementById('gistId').value.trim();
-            if (!testGistId) {
-                alert('Введите ID Gist для проверки');
-                return;
-            }
             
-            try {
-                showSyncStatus('🔍 Проверка подключения...', 'syncing');
-                
-                const rawUrl = `https://gist.githubusercontent.com/raw/${testGistId}`;
-                const response = await fetch(rawUrl);
-                
-                if (!response.ok) {
-                    throw new Error(`Gist не найден (ошибка ${response.status})`);
-                }
-                
-                const content = await response.json();
-                
-                if (content && Array.isArray(content.bookings)) {
-                    showSyncStatus('✅ Подключение успешно!', 'success');
-                    alert('✅ Подключение к Gist успешно!\n\nНайдено бронирований: ' + content.bookings.length);
-                } else {
-                    throw new Error('Неверный формат данных в Gist');
-                }
-                
-            } catch (error) {
-                showSyncStatus('❌ Ошибка подключения', 'error');
-                alert('❌ Ошибка подключения:\n' + error.message + '\n\nПроверьте:\n1. Правильность ID Gist\n2. Что Gist публичный\n3. Что файл называется shower-bookings.json');
-            }
-        }
-
-        // Конфигурация Gist
-        function loadGistConfig() {
-            const config = localStorage.getItem(GIST_CONFIG_KEY);
-            if (config) {
-                const { gistId: savedGistId } = JSON.parse(config);
-                gistId = savedGistId;
-                document.getElementById('gistId').value = gistId;
-            }
-        }
-
-        function saveGistConfig() {
-            const newGistId = document.getElementById('gistId').value.trim();
-            gistId = newGistId;
-            localStorage.setItem(GIST_CONFIG_KEY, JSON.stringify({ gistId }));
+            // Показываем сообщение
+            showSyncStatus('💾 Локально сохранено', 'success');
             
-            if (gistId) {
-                showSyncStatus('✅ Настройки сохранены', 'success');
-                // Загружаем данные из нового Gist
-                loadBookingsFromCloud();
-            } else {
-                showSyncStatus('⚠️ Оффлайн режим', 'error');
-                displayBookings();
-            }
+            // В реальном приложении здесь был бы код для записи в Gist
+            // но для этого нужен GitHub Personal Access Token
+            console.log('Данные сохранены локально. Для облачного сохранения нужен GitHub Token.');
+        }
+
+        // Принудительная синхронизация
+        async function forceSync() {
+            await loadBookingsFromCloud();
         }
 
         // Остальные функции остаются без изменений
