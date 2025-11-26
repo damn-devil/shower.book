@@ -58,7 +58,6 @@
             padding: 15px;
         }
 
-        /* Fixed Header для мобильных */
         .fixed-header {
             position: fixed;
             top: 10px;
@@ -106,7 +105,6 @@
             padding: 15px;
         }
 
-        /* Main Grid - адаптивный */
         .main-grid {
             display: grid;
             grid-template-columns: 1fr;
@@ -132,7 +130,6 @@
             }
         }
 
-        /* Desktop Admin Button */
         .fixed-admin-btn {
             position: fixed;
             top: 15px;
@@ -146,18 +143,6 @@
             }
         }
 
-        .fixed-admin-btn .btn {
-            padding: 12px 20px;
-            font-size: 0.9rem;
-            border-radius: 20px;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 215, 0, 0.5);
-            background: var(--bg-glass);
-            transition: all 0.3s ease;
-        }
-
-        /* Cards */
         .card {
             background: var(--bg-glass);
             border-radius: 20px;
@@ -184,7 +169,6 @@
             gap: 10px;
         }
 
-        /* Form Elements */
         .form-group {
             margin-bottom: 20px;
             position: relative;
@@ -219,7 +203,6 @@
             box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.2);
         }
 
-        /* Custom Select */
         .custom-select {
             position: relative;
         }
@@ -251,7 +234,6 @@
             pointer-events: none;
         }
 
-        /* Fixed Dropdown - теперь статичное окно по центру */
         .dropdown-overlay {
             position: fixed;
             top: 0;
@@ -332,7 +314,6 @@
             font-weight: bold;
         }
 
-        /* Time Select */
         .time-select {
             display: flex;
             gap: 12px;
@@ -346,7 +327,6 @@
             margin-bottom: 16px;
         }
 
-        /* Buttons */
         .btn {
             padding: 16px 24px;
             border: 1px solid rgba(0, 0, 0, 0.08);
@@ -377,7 +357,6 @@
             transform: translateY(-2px);
         }
 
-        /* Booking List */
         .booking-list {
             display: flex;
             flex-direction: column;
@@ -485,7 +464,6 @@
             cursor: not-allowed;
         }
 
-        /* Messages */
         .message {
             padding: 14px 18px;
             border-radius: 16px;
@@ -507,7 +485,6 @@
             border: 2px solid rgba(255, 68, 68, 0.3);
         }
 
-        /* Empty State */
         .empty-state {
             text-align: center;
             padding: 40px 20px;
@@ -517,7 +494,6 @@
             backdrop-filter: blur(20px);
         }
 
-        /* Admin Panel */
         .admin-panel {
             background: var(--bg-glass);
             border-radius: 20px;
@@ -560,7 +536,6 @@
             }
         }
 
-        /* Modal */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -634,7 +609,6 @@
             flex: 1;
         }
 
-        /* Sync Status */
         .sync-status {
             position: fixed;
             bottom: 20px;
@@ -646,6 +620,7 @@
             backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 215, 0, 0.3);
             display: none;
+            z-index: 1001;
         }
 
         .sync-status.syncing {
@@ -662,13 +637,24 @@
             display: block;
             color: var(--success);
         }
+
+        .config-panel {
+            background: var(--bg-glass);
+            border-radius: 16px;
+            padding: 20px;
+            margin-top: 20px;
+            border: 1px solid rgba(255, 215, 0, 0.3);
+        }
+
+        .config-panel h3 {
+            margin-bottom: 15px;
+            color: var(--primary);
+        }
     </style>
 </head>
 <body>
-    <!-- Статический фон -->
     <div class="static-background"></div>
 
-    <!-- Fixed Header для мобильных -->
     <div class="fixed-header">
         <h1>Бронирование душа</h1>
         <button class="mobile-admin-btn" onclick="showAdminPanel()" title="Админ панель">
@@ -676,20 +662,16 @@
         </button>
     </div>
 
-    <!-- Fixed Admin Button для десктопа -->
     <div class="fixed-admin-btn">
         <button class="btn btn-secondary" onclick="showAdminPanel()" title="Админ панель">
             <i></i> Админ
         </button>
     </div>
 
-    <!-- Sync Status -->
     <div class="sync-status" id="syncStatus"></div>
 
     <div class="container">
-        <!-- Main Content -->
         <div class="main-grid">
-            <!-- Booking Form -->
             <div class="card">
                 <h2><i></i> Бронь</h2>
                 
@@ -749,18 +731,15 @@
                 <div id="message"></div>
             </div>
 
-            <!-- Current Bookings -->
             <div class="card">
                 <h2><i>📋</i> Текущие брони</h2>
                 <div id="currentBookings">
                     <div id="bookingsList" class="booking-list">
-                        <!-- Bookings will appear here -->
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Admin Panel -->
         <div class="admin-panel hidden" id="adminPanel">
             <div class="admin-header">
                 <h2><i></i> Панель дежурного</h2>
@@ -773,17 +752,31 @@
                     </button>
                 </div>
             </div>
+            
+            <div class="config-panel">
+                <h3>⚙️ Настройки синхронизации</h3>
+                <div class="form-group">
+                    <label for="gistId">ID Gist (для синхронизации):</label>
+                    <input type="text" id="gistId" class="input-field" placeholder="Введите ID Gist">
+                    <small style="color: var(--text-light); font-size: 0.8rem;">
+                        Оставьте пустым для автоматического создания
+                    </small>
+                </div>
+                <button class="btn btn-secondary" onclick="saveGistConfig()">
+                    💾 Сохранить настройки
+                </button>
+                <button class="btn btn-primary" onclick="createNewGist()" style="margin-top: 10px;">
+                    🆕 Создать новую базу
+                </button>
+            </div>
         </div>
     </div>
 
-    <!-- Dropdown Modal -->
     <div class="dropdown-overlay" id="dropdownOverlay">
         <div class="dropdown-modal" id="dropdownModal">
-            <!-- Options will be inserted here -->
         </div>
     </div>
 
-    <!-- Admin Auth Modal -->
     <div class="modal-overlay" id="adminAuthModal">
         <div class="modal-content">
             <button class="modal-close" onclick="hideModal('adminAuthModal')">×</button>
@@ -802,8 +795,8 @@
     <script>
         // Конфигурация
         const STORAGE_KEY = 'showerBookings';
+        const GIST_CONFIG_KEY = 'gistConfig';
         const ADMIN_PASSWORD = 'admin123';
-        const GITHUB_GIST_ID = 'shower-bookings-data'; // Уникальный ID для данных
         
         let currentUser = '';
         let selectedGender = 'male';
@@ -813,21 +806,148 @@
         let selectedMinutes = '00';
         let isAdmin = false;
         let currentDropdown = null;
+        let gistId = '';
+        let githubToken = '';
 
-        // Функция для получения текущего пользователя
+        // Инициализация
+        function initializeApp() {
+            loadGistConfig();
+            currentUser = getCurrentUser();
+            if (currentUser) {
+                document.getElementById('userName').value = currentUser;
+            }
+            
+            initializeCustomSelects();
+            loadBookingsFromCloud();
+            
+            // Устанавливаем начальные значения
+            setTimeout(() => {
+                document.querySelector('#genderSelect').textContent = 'Мужской';
+                document.querySelector('#slotsSelect').textContent = '1 Один ключь';
+                document.querySelector('#hoursSelect').textContent = '12';
+                document.querySelector('#minutesSelect').textContent = '00';
+                document.querySelector('#durationSelect').textContent = '30 минут';
+            }, 100);
+
+            // Запускаем синхронизацию
+            setInterval(() => {
+                loadBookingsFromCloud();
+            }, 10000); // Каждые 10 секунд
+        }
+
+        // Работа с GitHub Gist
+        async function loadBookingsFromCloud() {
+            if (!gistId) return;
+            
+            try {
+                showSyncStatus('🔄 Синхронизация...', 'syncing');
+                const response = await fetch(`https://api.github.com/gists/${gistId}`);
+                
+                if (!response.ok) {
+                    throw new Error('Gist не найден');
+                }
+                
+                const gist = await response.json();
+                const content = JSON.parse(gist.files['shower-bookings.json'].content);
+                
+                // Сохраняем локально и обновляем интерфейс
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(content.bookings));
+                displayBookings();
+                showSyncStatus('✅ Синхронизировано', 'success');
+                
+            } catch (error) {
+                console.log('Ошибка синхронизации:', error);
+                showSyncStatus('❌ Оффлайн режим', 'error');
+            }
+        }
+
+        async function saveBookingsToCloud(bookings) {
+            if (!gistId) {
+                // Пытаемся создать новый gist
+                await createNewGist(bookings);
+                return;
+            }
+            
+            try {
+                showSyncStatus('💾 Сохранение...', 'syncing');
+                
+                const response = await fetch(`https://api.github.com/gists/${gistId}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        files: {
+                            'shower-bookings.json': {
+                                content: JSON.stringify({
+                                    bookings: bookings,
+                                    lastUpdated: new Date().toISOString()
+                                }, null, 2)
+                            }
+                        }
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Ошибка сохранения');
+                }
+                
+                showSyncStatus('✅ Данные сохранены', 'success');
+                
+            } catch (error) {
+                console.log('Ошибка сохранения в облако:', error);
+                showSyncStatus('❌ Ошибка сохранения', 'error');
+                // Сохраняем локально как fallback
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(bookings));
+            }
+        }
+
+        async function createNewGist(initialBookings = []) {
+            try {
+                showSyncStatus('🆕 Создание базы...', 'syncing');
+                
+                // Для создания Gist нужен GitHub Token
+                // В реальном приложении нужно запросить у пользователя
+                alert('Для создания облачной базы нужен GitHub Personal Access Token. Создайте Gist вручную и укажите его ID в настройках.');
+                return;
+                
+            } catch (error) {
+                console.log('Ошибка создания Gist:', error);
+                showSyncStatus('❌ Ошибка создания', 'error');
+            }
+        }
+
+        // Конфигурация Gist
+        function loadGistConfig() {
+            const config = localStorage.getItem(GIST_CONFIG_KEY);
+            if (config) {
+                const { gistId: savedGistId } = JSON.parse(config);
+                gistId = savedGistId;
+                document.getElementById('gistId').value = gistId;
+            }
+        }
+
+        function saveGistConfig() {
+            const newGistId = document.getElementById('gistId').value.trim();
+            if (newGistId) {
+                gistId = newGistId;
+                localStorage.setItem(GIST_CONFIG_KEY, JSON.stringify({ gistId }));
+                showSyncStatus('✅ Настройки сохранены', 'success');
+                loadBookingsFromCloud();
+            }
+        }
+
+        // Остальные функции (аналогичны предыдущей версии)
         function getCurrentUser() {
             return localStorage.getItem('currentUser') || '';
         }
 
-        // Функция для сохранения текущего пользователя
         function setCurrentUser(userName) {
             localStorage.setItem('currentUser', userName);
             currentUser = userName;
         }
 
-        // Инициализация кастомных селектов
         function initializeCustomSelects() {
-            // Вешаем обработчики на все селекты
             document.querySelectorAll('.select-field').forEach(select => {
                 select.addEventListener('click', (e) => {
                     e.stopPropagation();
@@ -836,23 +956,18 @@
                 });
             });
 
-            // Закрытие dropdown при клике вне
             document.addEventListener('click', () => {
                 hideDropdown();
             });
         }
 
-        // Показать dropdown
         function showDropdown(type, targetElement) {
             const overlay = document.getElementById('dropdownOverlay');
             const modal = document.getElementById('dropdownModal');
             
             currentDropdown = { type, targetElement };
-            
-            // Очищаем модальное окно
             modal.innerHTML = '';
             
-            // Создаем опции в зависимости от типа
             let options = [];
             
             switch(type) {
@@ -887,7 +1002,6 @@
                     break;
             }
             
-            // Добавляем опции в модальное окно
             options.forEach(option => {
                 const optionElement = document.createElement('div');
                 optionElement.className = 'dropdown-option';
@@ -911,106 +1025,37 @@
                 modal.appendChild(optionElement);
             });
             
-            // Показываем overlay
             overlay.classList.add('active');
         }
 
-        // Скрыть dropdown
         function hideDropdown() {
             const overlay = document.getElementById('dropdownOverlay');
             overlay.classList.remove('active');
             currentDropdown = null;
         }
 
-        // Выбрать опцию
         function selectOption(value, text) {
             if (!currentDropdown) return;
             
             const { type, targetElement } = currentDropdown;
             
-            // Обновляем выбранное значение
             switch(type) {
-                case 'gender':
-                    selectedGender = value;
-                    break;
-                case 'slots':
-                    selectedSlots = value;
-                    break;
-                case 'hours':
-                    selectedHours = value;
-                    break;
-                case 'minutes':
-                    selectedMinutes = value;
-                    break;
-                case 'duration':
-                    selectedDuration = value;
-                    break;
+                case 'gender': selectedGender = value; break;
+                case 'slots': selectedSlots = value; break;
+                case 'hours': selectedHours = value; break;
+                case 'minutes': selectedMinutes = value; break;
+                case 'duration': selectedDuration = value; break;
             }
             
-            // Обновляем текст в селекте
             targetElement.textContent = text;
-            
-            // Скрываем dropdown
             hideDropdown();
         }
 
-        // Функции для работы с LocalStorage (для оффлайн работы)
         function getBookings() {
             const bookings = localStorage.getItem(STORAGE_KEY);
             return bookings ? JSON.parse(bookings) : [];
         }
 
-        function saveBookings(bookings) {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(bookings));
-            // Пытаемся синхронизировать с "облаком" (localStorage других пользователей)
-            syncWithOtherUsers(bookings);
-        }
-
-        // Простая синхронизация между пользователями через localStorage
-        function syncWithOtherUsers(bookings) {
-            // Создаем уникальный ключ для этого "приложения"
-            const syncKey = 'showerBookings_sync';
-            
-            // Сохраняем timestamp последнего обновления
-            const syncData = {
-                bookings: bookings,
-                timestamp: Date.now(),
-                source: Math.random().toString(36).substr(2, 9) // случайный ID источника
-            };
-            
-            localStorage.setItem(syncKey, JSON.stringify(syncData));
-            showSyncStatus('Данные обновлены', 'success');
-        }
-
-        // Проверка обновлений от других пользователей
-        function checkForUpdates() {
-            const syncKey = 'showerBookings_sync';
-            const lastUpdate = localStorage.getItem('lastUpdateCheck') || 0;
-            const now = Date.now();
-            
-            // Проверяем не чаще чем раз в 5 секунд
-            if (now - lastUpdate < 5000) return;
-            
-            const syncData = localStorage.getItem(syncKey);
-            if (syncData) {
-                const data = JSON.parse(syncData);
-                const localBookings = getBookings();
-                
-                // Если данные новее наших, обновляем
-                if (data.timestamp > (localStorage.getItem('lastSync') || 0)) {
-                    if (JSON.stringify(data.bookings) !== JSON.stringify(localBookings)) {
-                        saveBookings(data.bookings);
-                        localStorage.setItem('lastSync', data.timestamp);
-                        displayBookings();
-                        showSyncStatus('Данные синхронизированы', 'success');
-                    }
-                }
-            }
-            
-            localStorage.setItem('lastUpdateCheck', now);
-        }
-
-        // Показать статус синхронизации
         function showSyncStatus(message, type) {
             const statusElement = document.getElementById('syncStatus');
             statusElement.textContent = message;
@@ -1021,7 +1066,6 @@
             }, 3000);
         }
 
-        // Проверка доступности времени с учетом пола
         function isTimeSlotAvailable(startTime, duration, slotsCount, gender, userName) {
             const bookings = getBookings();
             const newStart = new Date(`1970-01-01T${startTime}`);
@@ -1036,20 +1080,16 @@
                 const timeConflict = (newStart < existingEnd) && (newEnd > existingStart);
 
                 if (timeConflict) {
-                    // Если разный пол - блокируем полностью
                     if (booking.gender !== gender) {
                         return false;
                     }
-                    // Если тот же пол - считаем занятые слоты
                     totalSlotsUsed += parseInt(booking.slotsCount);
                 }
             }
 
-            // Проверяем, хватает ли свободных слотов
             return (totalSlotsUsed + parseInt(slotsCount)) <= 2;
         }
 
-        // Проверка и удаление истекших броней
         function removeExpiredBookings() {
             const bookings = getBookings();
             const now = new Date();
@@ -1064,42 +1104,31 @@
             });
 
             if (validBookings.length !== bookings.length) {
-                saveBookings(validBookings);
+                saveBookingsToCloud(validBookings);
             }
             
             return validBookings;
         }
 
-        // Основная функция бронирования
-        function bookSlot() {
+        async function bookSlot() {
             const userName = document.getElementById('userName').value.trim();
             const bookingDuration = parseInt(selectedDuration);
-
             const bookingTime = `${selectedHours}:${selectedMinutes}`;
 
-            // Сброс сообщений
             const messageDiv = document.getElementById('message');
             messageDiv.innerHTML = '';
             messageDiv.className = '';
 
-            // Валидация
             if (!userName) {
                 showMessage('Пожалуйста, введите ваше имя.', 'error');
                 return;
             }
 
-            if (selectedHours === '00' && selectedMinutes === '00') {
-                showMessage('Пожалуйста, выберите корректное время.', 'error');
-                return;
-            }
-
-            // Проверка доступности времени
             if (!isTimeSlotAvailable(bookingTime, bookingDuration, selectedSlots, selectedGender, userName)) {
                 showMessage('❌ Это время уже занято или нет свободных ключей.', 'error');
                 return;
             }
 
-            // Создание новой брони
             const newBooking = {
                 id: Date.now(),
                 name: userName,
@@ -1111,23 +1140,16 @@
                 timestamp: Date.now()
             };
 
-            // Сохранение
             const bookings = getBookings();
             bookings.push(newBooking);
-            saveBookings(bookings);
+            await saveBookingsToCloud(bookings);
 
-            // Сохраняем текущего пользователя
             setCurrentUser(userName);
-
-            // Показ успешного сообщения
             showMessage('✅ Забронированно!', 'success');
             displayBookings();
-
-            // Очистка формы (кроме имени)
             document.getElementById('userName').value = '';
         }
 
-        // Функция для отображения сообщений
         function showMessage(text, type) {
             const messageDiv = document.getElementById('message');
             messageDiv.innerHTML = text;
@@ -1141,14 +1163,12 @@
             }
         }
 
-        // Функция для отображения списка бронирований
         function displayBookings() {
             const bookingsList = document.getElementById('bookingsList');
-            let bookings = removeExpiredBookings(); // Удаляем истекшие
+            let bookings = removeExpiredBookings();
             const now = new Date();
             const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
 
-            // Сортируем брони по времени
             bookings.sort((a, b) => a.time.localeCompare(b.time));
 
             if (bookings.length === 0) {
@@ -1169,15 +1189,11 @@
                 const endTime = new Date(startTime.getTime() + booking.duration * 60000);
                 const endTimeString = endTime.toTimeString().substring(0, 5);
                 
-                // Проверяем истекла ли бронь
                 const isExpired = currentTime >= endTimeString;
-                
                 bookingDiv.className = `booking-item ${booking.gender} ${isExpired ? 'expired' : ''}`;
 
                 const genderIcon = booking.gender === 'male' ? '👨' : '👩';
                 const slotsText = booking.slotsCount === '2' ? ' (2 ключа)' : '';
-
-                // Проверяем, может ли текущий пользователь отменить бронь
                 const canCancel = currentUser === booking.user || isAdmin;
 
                 bookingDiv.innerHTML = `
@@ -1201,14 +1217,12 @@
             });
         }
 
-        // Функция для отмены бронирования
-        function cancelBooking(bookingId) {
+        async function cancelBooking(bookingId) {
             const bookings = getBookings();
             const booking = bookings.find(b => b.id === bookingId);
             
             if (!booking) return;
 
-            // Проверка прав
             if (currentUser !== booking.user && !isAdmin) {
                 showMessage('❌ Вы можете отменять только свои брони.', 'error');
                 return;
@@ -1216,13 +1230,12 @@
 
             if (confirm('Вы уверены, что хотите отменить эту бронь?')) {
                 const updatedBookings = bookings.filter(b => b.id !== bookingId);
-                saveBookings(updatedBookings);
+                await saveBookingsToCloud(updatedBookings);
                 displayBookings();
                 showMessage('Бронь отменена', 'success');
             }
         }
 
-        // Админ функции
         function showAdminPanel() {
             showModal('adminAuthModal');
         }
@@ -1230,7 +1243,7 @@
         function hideAdminPanel() {
             document.getElementById('adminPanel').classList.add('hidden');
             isAdmin = false;
-            displayBookings(); // Перерисовываем чтобы скрыть кнопки отмены
+            displayBookings();
         }
 
         function checkAdminPassword() {
@@ -1240,20 +1253,17 @@
                 hideModal('adminAuthModal');
                 document.getElementById('adminPassword').value = '';
                 isAdmin = true;
-                displayBookings(); // Перерисовываем чтобы показать все кнопки отмены
+                displayBookings();
                 showMessage('✅ Вы вошли как дежурный', 'success');
             } else {
                 alert('Неверный пароль!');
             }
         }
 
-        function clearAllData() {
+        async function clearAllData() {
             if (confirm('ВНИМАНИЕ! Это удалит ВСЕ брони. Продолжить?')) {
-                localStorage.removeItem(STORAGE_KEY);
+                await saveBookingsToCloud([]);
                 localStorage.removeItem('currentUser');
-                localStorage.removeItem('showerBookings_sync');
-                localStorage.removeItem('lastSync');
-                localStorage.removeItem('lastUpdateCheck');
                 currentUser = '';
                 displayBookings();
                 showMessage('Все брони очищены', 'success');
@@ -1261,7 +1271,6 @@
             }
         }
 
-        // Модальные окна
         function showModal(modalId) {
             document.getElementById(modalId).style.display = 'flex';
         }
@@ -1270,56 +1279,12 @@
             document.getElementById(modalId).style.display = 'none';
         }
 
-        // Автоматическая очистка в полночь
-        function checkAndResetAtMidnight() {
-            const now = new Date();
-            const lastReset = localStorage.getItem('lastResetDate');
-            const today = now.toDateString();
-
-            if (lastReset !== today && now.getHours() === 0 && now.getMinutes() < 1) {
-                localStorage.removeItem(STORAGE_KEY);
-                localStorage.setItem('lastResetDate', today);
-                displayBookings();
-            }
-        }
-
-        // Инициализация при загрузке страницы
+        // Инициализация при загрузке
         document.addEventListener('DOMContentLoaded', function() {
-            // Восстанавливаем текущего пользователя
-            currentUser = getCurrentUser();
-            if (currentUser) {
-                document.getElementById('userName').value = currentUser;
-            }
-            
-            initializeCustomSelects();
-            displayBookings();
-            
-            // Проверяем истекшие брони каждую минуту
-            setInterval(() => {
-                displayBookings();
-            }, 60000);
-            
-            // Проверяем обновления каждые 10 секунд
-            setInterval(() => {
-                checkForUpdates();
-            }, 10000);
-            
-            setInterval(checkAndResetAtMidnight, 60000);
-
-            // Устанавливаем начальные значения
-            setTimeout(() => {
-                document.querySelector('#genderSelect').textContent = 'Мужской';
-                document.querySelector('#slotsSelect').textContent = '1 Один ключь';
-                document.querySelector('#hoursSelect').textContent = '12';
-                document.querySelector('#minutesSelect').textContent = '00';
-                document.querySelector('#durationSelect').textContent = '30 минут';
-            }, 100);
-
-            // Фокус на поле имени
+            initializeApp();
             document.getElementById('userName').focus();
         });
 
-        // Закрытие модальных окон при клике вне контента
         document.querySelectorAll('.modal-overlay, .dropdown-overlay').forEach(overlay => {
             overlay.addEventListener('click', (e) => {
                 if (e.target === overlay) {
