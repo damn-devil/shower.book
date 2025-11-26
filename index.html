@@ -670,7 +670,7 @@
     <div class="static-background"></div>
 
     <div class="fixed-header">
-        <h1>Бронирование душа</h1>
+        <h1>🚿 Бронирование душа</h1>
         <button class="mobile-admin-btn" onclick="showAdminPanel()" title="Админ панель">
             Админ
         </button>
@@ -678,7 +678,7 @@
 
     <div class="fixed-admin-btn">
         <button class="btn btn-secondary" onclick="showAdminPanel()" title="Админ панель">
-            <i></i> Админ
+            👨‍💼 Админ
         </button>
     </div>
 
@@ -687,7 +687,7 @@
     <div class="container">
         <div class="main-grid">
             <div class="card">
-                <h2><i></i> Бронь</h2>
+                <h2>📅 Бронь</h2>
                 
                 <div class="form-group">
                     <label for="userName">Ваше имя</label>
@@ -739,14 +739,14 @@
                 </div>
 
                 <button class="btn btn-primary" onclick="bookSlot()">
-                    <i>✅</i> Забронировать душ
+                    ✅ Забронировать душ
                 </button>
 
                 <div id="message"></div>
             </div>
 
             <div class="card">
-                <h2><i>📋</i> Текущие брони</h2>
+                <h2>📋 Текущие брони</h2>
                 <div id="currentBookings">
                     <div id="bookingsList" class="booking-list">
                     </div>
@@ -756,13 +756,13 @@
 
         <div class="admin-panel hidden" id="adminPanel">
             <div class="admin-header">
-                <h2><i></i> Панель дежурного</h2>
+                <h2>👨‍💼 Панель дежурного</h2>
                 <div class="admin-actions">
                     <button class="btn btn-danger" onclick="clearAllData()">
-                        <i>🗑️</i> Очистить все брони
+                        🗑️ Очистить все брони
                     </button>
                     <button class="btn btn-secondary" onclick="hideAdminPanel()">
-                        <i>❌</i> Закрыть
+                        ❌ Закрыть
                     </button>
                 </div>
             </div>
@@ -808,11 +808,12 @@
 
     <script>
         // ФИКСИРОВАННЫЙ GIST ID - замените на ваш реальный ID Gist
-        const FIXED_GIST_ID = 'ea401eff8cbb94a9ea606e513fd88eae'; // ЗАМЕНИТЕ НА ВАШ РЕАЛЬНЫЙ GIST ID
+        const FIXED_GIST_ID = 'ea401eff8cbb94a9ea606e513fd88eae';
         
         // Конфигурация
         const STORAGE_KEY = 'showerBookings';
-        const ADMIN_PASSWORD = 'admin123';
+        // Более безопасный подход - хэш пароля вместо открытого текста
+        const ADMIN_PASSWORD_HASH = '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9'; // хэш для 'admin123'
         
         let currentUser = '';
         let selectedGender = 'male';
@@ -822,6 +823,14 @@
         let selectedMinutes = '00';
         let isAdmin = false;
         let currentDropdown = null;
+
+        // Простая функция для создания SHA-256 хэша
+        async function sha256(message) {
+            const msgBuffer = new TextEncoder().encode(message);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
 
         // Инициализация
         function initializeApp() {
@@ -868,7 +877,6 @@
                 showSyncStatus('🔄 Синхронизация...', 'syncing');
                 document.getElementById('syncStatusText').textContent = 'Синхронизация...';
                 
-                // Пробуем разные варианты URL для доступа к Gist
                 const urls = [
                     `https://gist.githubusercontent.com/raw/${FIXED_GIST_ID}`,
                     `https://gist.github.com/raw/${FIXED_GIST_ID}`,
@@ -883,7 +891,17 @@
                         console.log('Пробуем URL:', url);
                         response = await fetch(url);
                         if (response.ok) {
-                            content = await response.json();
+                            if (url.includes('api.github.com')) {
+                                content = await response.json();
+                            } else {
+                                const text = await response.text();
+                                try {
+                                    content = JSON.parse(text);
+                                } catch {
+                                    // Если это не JSON, создаем массив из текста
+                                    content = { bookings: [] };
+                                }
+                            }
                             break;
                         }
                     } catch (e) {
@@ -899,35 +917,47 @@
                 // Обрабатываем разные форматы ответа
                 let bookings = [];
                 if (Array.isArray(content)) {
-                    // Прямой массив броней
                     bookings = content;
                 } else if (content && content.bookings && Array.isArray(content.bookings)) {
-                    // Объект с полем bookings
                     bookings = content.bookings;
                 } else if (content && content.files) {
-                    // Gist API response
                     const files = content.files;
                     const fileKey = Object.keys(files).find(key => key.includes('json'));
                     if (fileKey && files[fileKey].content) {
-                        const fileContent = JSON.parse(files[fileKey].content);
-                        bookings = fileContent.bookings || fileContent;
+                        try {
+                            const fileContent = JSON.parse(files[fileKey].content);
+                            bookings = fileContent.bookings || fileContent;
+                        } catch (e) {
+                            console.error('Ошибка парсинга содержимого файла:', e);
+                            bookings = [];
+                        }
                     }
                 }
                 
                 if (!Array.isArray(bookings)) {
-                    throw new Error('Неверный формат данных в Gist');
+                    console.warn('Неверный формат данных в Gist, используем пустой массив');
+                    bookings = [];
                 }
                 
                 console.log('Загружено броней:', bookings.length);
                 
+                // Валидация и очистка данных
+                const validBookings = bookings.filter(booking => 
+                    booking && 
+                    booking.id && 
+                    booking.name && 
+                    booking.time && 
+                    booking.duration
+                );
+                
                 // Сохраняем локально и обновляем интерфейс
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(bookings));
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(validBookings));
                 displayBookings();
                 
                 // Обновляем информацию в админке
                 document.getElementById('syncStatusText').textContent = 'Синхронизировано';
                 document.getElementById('lastSyncTime').textContent = new Date().toLocaleTimeString();
-                document.getElementById('totalBookingsCount').textContent = bookings.length;
+                document.getElementById('totalBookingsCount').textContent = validBookings.length;
                 
                 showSyncStatus('✅ Синхронизировано', 'success');
                 
@@ -941,18 +971,28 @@
             }
         }
 
-        // Сохранение данных (только локально, так как запись в Gist требует аутентификации)
+        // Сохранение данных (только локально)
         async function saveBookings(bookings) {
-            // Сохраняем локально
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(bookings));
-            displayBookings();
-            
-            // Показываем сообщение
-            showSyncStatus('💾 Локально сохранено', 'success');
-            
-            // В реальном приложении здесь был бы код для записи в Gist
-            // но для этого нужен GitHub Personal Access Token
-            console.log('Данные сохранены локально. Для облачного сохранения нужен GitHub Token.');
+            try {
+                // Валидация данных перед сохранением
+                const validBookings = bookings.filter(booking => 
+                    booking && 
+                    typeof booking.id === 'number' &&
+                    typeof booking.name === 'string' &&
+                    typeof booking.time === 'string' &&
+                    typeof booking.duration === 'number'
+                );
+                
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(validBookings));
+                displayBookings();
+                
+                showSyncStatus('💾 Локально сохранено', 'success');
+                
+                console.log('Данные сохранены локально. Для облачного сохранения нужен GitHub Token.');
+            } catch (error) {
+                console.error('Ошибка сохранения:', error);
+                showSyncStatus('❌ Ошибка сохранения', 'error');
+            }
         }
 
         // Принудительная синхронизация
@@ -960,14 +1000,22 @@
             await loadBookingsFromCloud();
         }
 
-        // Остальные функции остаются без изменений
         function getCurrentUser() {
-            return localStorage.getItem('currentUser') || '';
+            try {
+                return localStorage.getItem('currentUser') || '';
+            } catch (error) {
+                console.error('Ошибка получения пользователя:', error);
+                return '';
+            }
         }
 
         function setCurrentUser(userName) {
-            localStorage.setItem('currentUser', userName);
-            currentUser = userName;
+            try {
+                localStorage.setItem('currentUser', userName);
+                currentUser = userName;
+            } catch (error) {
+                console.error('Ошибка сохранения пользователя:', error);
+            }
         }
 
         function initializeCustomSelects() {
@@ -1075,8 +1123,13 @@
         }
 
         function getBookings() {
-            const bookings = localStorage.getItem(STORAGE_KEY);
-            return bookings ? JSON.parse(bookings) : [];
+            try {
+                const bookings = localStorage.getItem(STORAGE_KEY);
+                return bookings ? JSON.parse(bookings) : [];
+            } catch (error) {
+                console.error('Ошибка получения броней:', error);
+                return [];
+            }
         }
 
         function showSyncStatus(message, type) {
@@ -1090,86 +1143,105 @@
         }
 
         function isTimeSlotAvailable(startTime, duration, slotsCount, gender, userName) {
-            const bookings = getBookings();
-            const newStart = new Date(`1970-01-01T${startTime}`);
-            const newEnd = new Date(newStart.getTime() + duration * 60000);
+            try {
+                const bookings = getBookings();
+                const newStart = new Date(`1970-01-01T${startTime}`);
+                const newEnd = new Date(newStart.getTime() + duration * 60000);
 
-            let totalSlotsUsed = 0;
+                let totalSlotsUsed = 0;
 
-            for (const booking of bookings) {
-                const existingStart = new Date(`1970-01-01T${booking.time}`);
-                const existingEnd = new Date(existingStart.getTime() + booking.duration * 60000);
+                for (const booking of bookings) {
+                    const existingStart = new Date(`1970-01-01T${booking.time}`);
+                    const existingEnd = new Date(existingStart.getTime() + booking.duration * 60000);
 
-                const timeConflict = (newStart < existingEnd) && (newEnd > existingStart);
+                    const timeConflict = (newStart < existingEnd) && (newEnd > existingStart);
 
-                if (timeConflict) {
-                    if (booking.gender !== gender) {
-                        return false;
+                    if (timeConflict) {
+                        if (booking.gender !== gender) {
+                            return false;
+                        }
+                        totalSlotsUsed += parseInt(booking.slotsCount) || 1;
                     }
-                    totalSlotsUsed += parseInt(booking.slotsCount);
                 }
-            }
 
-            return (totalSlotsUsed + parseInt(slotsCount)) <= 2;
+                return (totalSlotsUsed + parseInt(slotsCount)) <= 2;
+            } catch (error) {
+                console.error('Ошибка проверки времени:', error);
+                return false;
+            }
         }
 
         function removeExpiredBookings() {
-            const bookings = getBookings();
-            const now = new Date();
-            const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
-            
-            const validBookings = bookings.filter(booking => {
-                const bookingEnd = new Date(`1970-01-01T${booking.time}`);
-                bookingEnd.setMinutes(bookingEnd.getMinutes() + booking.duration);
-                const bookingEndTime = bookingEnd.toTimeString().substring(0, 5);
+            try {
+                const bookings = getBookings();
+                const now = new Date();
+                const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
                 
-                return currentTime < bookingEndTime;
-            });
+                const validBookings = bookings.filter(booking => {
+                    try {
+                        const bookingEnd = new Date(`1970-01-01T${booking.time}`);
+                        bookingEnd.setMinutes(bookingEnd.getMinutes() + (booking.duration || 30));
+                        const bookingEndTime = bookingEnd.toTimeString().substring(0, 5);
+                        
+                        return currentTime < bookingEndTime;
+                    } catch {
+                        return false;
+                    }
+                });
 
-            if (validBookings.length !== bookings.length) {
-                saveBookings(validBookings);
+                if (validBookings.length !== bookings.length) {
+                    saveBookings(validBookings);
+                }
+                
+                return validBookings;
+            } catch (error) {
+                console.error('Ошибка удаления устаревших броней:', error);
+                return [];
             }
-            
-            return validBookings;
         }
 
         async function bookSlot() {
-            const userName = document.getElementById('userName').value.trim();
-            const bookingDuration = parseInt(selectedDuration);
-            const bookingTime = `${selectedHours}:${selectedMinutes}`;
+            try {
+                const userName = document.getElementById('userName').value.trim();
+                const bookingDuration = parseInt(selectedDuration) || 30;
+                const bookingTime = `${selectedHours}:${selectedMinutes}`;
 
-            const messageDiv = document.getElementById('message');
-            messageDiv.innerHTML = '';
-            messageDiv.className = '';
+                const messageDiv = document.getElementById('message');
+                messageDiv.innerHTML = '';
+                messageDiv.className = '';
 
-            if (!userName) {
-                showMessage('Пожалуйста, введите ваше имя.', 'error');
-                return;
+                if (!userName) {
+                    showMessage('Пожалуйста, введите ваше имя.', 'error');
+                    return;
+                }
+
+                if (!isTimeSlotAvailable(bookingTime, bookingDuration, selectedSlots, selectedGender, userName)) {
+                    showMessage('❌ Это время уже занято или нет свободных ключей.', 'error');
+                    return;
+                }
+
+                const newBooking = {
+                    id: Date.now(),
+                    name: userName,
+                    gender: selectedGender,
+                    slotsCount: selectedSlots,
+                    time: bookingTime,
+                    duration: bookingDuration,
+                    user: userName,
+                    timestamp: Date.now()
+                };
+
+                const bookings = getBookings();
+                bookings.push(newBooking);
+                await saveBookings(bookings);
+
+                setCurrentUser(userName);
+                showMessage('✅ Забронированно!', 'success');
+                document.getElementById('userName').value = '';
+            } catch (error) {
+                console.error('Ошибка бронирования:', error);
+                showMessage('❌ Ошибка бронирования', 'error');
             }
-
-            if (!isTimeSlotAvailable(bookingTime, bookingDuration, selectedSlots, selectedGender, userName)) {
-                showMessage('❌ Это время уже занято или нет свободных ключей.', 'error');
-                return;
-            }
-
-            const newBooking = {
-                id: Date.now(),
-                name: userName,
-                gender: selectedGender,
-                slotsCount: selectedSlots,
-                time: bookingTime,
-                duration: bookingDuration,
-                user: userName,
-                timestamp: Date.now()
-            };
-
-            const bookings = getBookings();
-            bookings.push(newBooking);
-            await saveBookings(bookings);
-
-            setCurrentUser(userName);
-            showMessage('✅ Забронированно!', 'success');
-            document.getElementById('userName').value = '';
         }
 
         function showMessage(text, type) {
@@ -1186,74 +1258,96 @@
         }
 
         function displayBookings() {
-            const bookingsList = document.getElementById('bookingsList');
-            let bookings = removeExpiredBookings();
-            const now = new Date();
-            const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+            try {
+                const bookingsList = document.getElementById('bookingsList');
+                let bookings = removeExpiredBookings();
+                const now = new Date();
+                const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
 
-            bookings.sort((a, b) => a.time.localeCompare(b.time));
+                bookings.sort((a, b) => a.time.localeCompare(b.time));
 
-            if (bookings.length === 0) {
+                if (bookings.length === 0) {
+                    bookingsList.innerHTML = `
+                        <div class="empty-state">
+                            🎯
+                            <div>Бронирований пока нет</div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                bookingsList.innerHTML = '';
+                bookings.forEach(booking => {
+                    try {
+                        const bookingDiv = document.createElement('div');
+                        
+                        const startTime = new Date(`1970-01-01T${booking.time}`);
+                        const endTime = new Date(startTime.getTime() + (booking.duration || 30) * 60000);
+                        const endTimeString = endTime.toTimeString().substring(0, 5);
+                        
+                        const isExpired = currentTime >= endTimeString;
+                        bookingDiv.className = `booking-item ${booking.gender} ${isExpired ? 'expired' : ''}`;
+
+                        const genderIcon = booking.gender === 'male' ? '👨' : '👩';
+                        const slotsText = booking.slotsCount === '2' ? ' (2 ключа)' : '';
+                        const canCancel = currentUser === booking.user || isAdmin;
+
+                        bookingDiv.innerHTML = `
+                            <div class="booking-info">
+                                <div class="booking-name">
+                                    ${genderIcon} ${booking.name || 'Неизвестный'}
+                                    ${isExpired ? '<span class="expired-badge">Истекло</span>' : ''}
+                                </div>
+                                <div class="booking-details">
+                                    ${booking.duration || 30} минут${slotsText}
+                                </div>
+                            </div>
+                            <div class="booking-time">
+                                <span>${booking.time} - ${endTimeString}</span>
+                                <button class="cancel-btn" onclick="cancelBooking(${booking.id})" ${!canCancel || isExpired ? 'disabled' : ''}>
+                                    ${canCancel && !isExpired ? 'Отмена' : '🔒'}
+                                </button>
+                            </div>
+                        `;
+                        bookingsList.appendChild(bookingDiv);
+                    } catch (error) {
+                        console.error('Ошибка отображения брони:', booking, error);
+                    }
+                });
+            } catch (error) {
+                console.error('Ошибка отображения броней:', error);
+                const bookingsList = document.getElementById('bookingsList');
                 bookingsList.innerHTML = `
-                    <div class="empty-state">
-                        <i>🎯</i>
-                        <div>Бронирований пока нет</div>
+                    <div class="empty-state error">
+                        ❌ Ошибка загрузки броней
                     </div>
                 `;
-                return;
             }
-
-            bookingsList.innerHTML = '';
-            bookings.forEach(booking => {
-                const bookingDiv = document.createElement('div');
-                
-                const startTime = new Date(`1970-01-01T${booking.time}`);
-                const endTime = new Date(startTime.getTime() + booking.duration * 60000);
-                const endTimeString = endTime.toTimeString().substring(0, 5);
-                
-                const isExpired = currentTime >= endTimeString;
-                bookingDiv.className = `booking-item ${booking.gender} ${isExpired ? 'expired' : ''}`;
-
-                const genderIcon = booking.gender === 'male' ? '👨' : '👩';
-                const slotsText = booking.slotsCount === '2' ? ' (2 ключа)' : '';
-                const canCancel = currentUser === booking.user || isAdmin;
-
-                bookingDiv.innerHTML = `
-                    <div class="booking-info">
-                        <div class="booking-name">
-                            ${genderIcon} ${booking.name}
-                            ${isExpired ? '<span class="expired-badge">Истекло</span>' : ''}
-                        </div>
-                        <div class="booking-details">
-                            ${booking.duration} минут${slotsText}
-                        </div>
-                    </div>
-                    <div class="booking-time">
-                        <span>${booking.time} - ${endTimeString}</span>
-                        <button class="cancel-btn" onclick="cancelBooking(${booking.id})" ${!canCancel || isExpired ? 'disabled' : ''}>
-                            ${canCancel && !isExpired ? 'Отмена' : '🔒'}
-                        </button>
-                    </div>
-                `;
-                bookingsList.appendChild(bookingDiv);
-            });
         }
 
         async function cancelBooking(bookingId) {
-            const bookings = getBookings();
-            const booking = bookings.find(b => b.id === bookingId);
-            
-            if (!booking) return;
+            try {
+                const bookings = getBookings();
+                const booking = bookings.find(b => b.id === bookingId);
+                
+                if (!booking) {
+                    showMessage('❌ Бронь не найдена', 'error');
+                    return;
+                }
 
-            if (currentUser !== booking.user && !isAdmin) {
-                showMessage('❌ Вы можете отменять только свои брони.', 'error');
-                return;
-            }
+                if (currentUser !== booking.user && !isAdmin) {
+                    showMessage('❌ Вы можете отменять только свои брони.', 'error');
+                    return;
+                }
 
-            if (confirm('Вы уверены, что хотите отменить эту бронь?')) {
-                const updatedBookings = bookings.filter(b => b.id !== bookingId);
-                await saveBookings(updatedBookings);
-                showMessage('Бронь отменена', 'success');
+                if (confirm('Вы уверены, что хотите отменить эту бронь?')) {
+                    const updatedBookings = bookings.filter(b => b.id !== bookingId);
+                    await saveBookings(updatedBookings);
+                    showMessage('✅ Бронь отменена', 'success');
+                }
+            } catch (error) {
+                console.error('Ошибка отмены брони:', error);
+                showMessage('❌ Ошибка отмены брони', 'error');
             }
         }
 
@@ -1267,17 +1361,28 @@
             displayBookings();
         }
 
-        function checkAdminPassword() {
-            const password = document.getElementById('adminPassword').value;
-            if (password === ADMIN_PASSWORD) {
-                document.getElementById('adminPanel').classList.remove('hidden');
-                hideModal('adminAuthModal');
-                document.getElementById('adminPassword').value = '';
-                isAdmin = true;
-                displayBookings();
-                showMessage('✅ Вы вошли как дежурный', 'success');
-            } else {
-                alert('Неверный пароль!');
+        async function checkAdminPassword() {
+            try {
+                const password = document.getElementById('adminPassword').value;
+                if (!password) {
+                    alert('Введите пароль!');
+                    return;
+                }
+                
+                const passwordHash = await sha256(password);
+                if (passwordHash === ADMIN_PASSWORD_HASH) {
+                    document.getElementById('adminPanel').classList.remove('hidden');
+                    hideModal('adminAuthModal');
+                    document.getElementById('adminPassword').value = '';
+                    isAdmin = true;
+                    displayBookings();
+                    showMessage('✅ Вы вошли как дежурный', 'success');
+                } else {
+                    alert('Неверный пароль!');
+                }
+            } catch (error) {
+                console.error('Ошибка проверки пароля:', error);
+                alert('Ошибка проверки пароля');
             }
         }
 
@@ -1286,7 +1391,7 @@
                 await saveBookings([]);
                 localStorage.removeItem('currentUser');
                 currentUser = '';
-                showMessage('Все брони очищены', 'success');
+                showMessage('✅ Все брони очищены', 'success');
                 hideAdminPanel();
             }
         }
